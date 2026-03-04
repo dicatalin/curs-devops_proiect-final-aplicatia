@@ -1,7 +1,7 @@
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-pip install django mysqlclient
+pip install django mysqlclient python-dotenv
 
 python manage.py runserver
 
