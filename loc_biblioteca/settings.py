@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 import os
+import sys
 
 
 
@@ -133,8 +134,6 @@ DATABASES = {
         'PORT': os.environ.get('DB_PORT', '3306'),
     }
 }
-
-import sys
 
 if 'test' in sys.argv:
     DATABASES['default'] = {
