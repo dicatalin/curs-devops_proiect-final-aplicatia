@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 
 
+
 DB_HOST = os.environ.get('DB_HOST', '127.0.0.1')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -29,7 +30,7 @@ SECRET_KEY = 'django-insecure-b^ttbod+1(hochiq%24=t$0(e7iv9)+mzmxv)7b&l9=(70u@ge
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-#ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = []
 ALLOWED_HOSTS = ['192.168.122.40', 'localhost', '127.0.0.1']
 
 
@@ -132,3 +133,11 @@ DATABASES = {
         'PORT': os.environ.get('DB_PORT', '3306'),
     }
 }
+
+import sys
+
+if 'test' in sys.argv:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',  # Rulează testele direct în RAM, super rapid!
+    }
