@@ -2,9 +2,8 @@ pipeline {
     agent any
     
     environment {
-        // ID-ul credențialului de tip "Secret Text" creat în Jenkins
-        GITHUB_TOKEN = credentials('f13e3846-3469-426d-a2f9-096dc6314efa')
-        REPO_URL = "https://api.github.com/repos/dicatalin/curs-devops_proiect-final-aplicatia"
+        // gh CLI caută automat variabila GH_TOKEN pentru autentificare
+        GH_TOKEN = credentials('f13e3846-3469-426d-a2f9-096dc6314efa')
     }
 
     stages {
@@ -29,30 +28,13 @@ pipeline {
 
     post {
         success {
-            echo '✅ Teste trecute. Se execută Merge automat...'
-            sh """
-            # Trimitem cererea de Merge prin API-ul GitHub
-            # Presupunem că facem merge de pe branch-ul curent în 'main'
-            curl -H "Authorization: token ${GITHUB_TOKEN}" \
-                 -X POST \
-                 -d '{"commit_title": "Auto-merge by Jenkins", "merge_method": "merge"}' \
-                 ${REPO_URL}/merges?head=${env.BRANCH_NAME}&base=main
-            """
+            echo '✅ Teste trecute. Încercăm Merge automat...'
+            sh 'gh pr merge --auto --merge'
         }
         failure {
             echo '❌ Teste eșuate. Adăugăm comentariu pe PR...'
-            sh """
-            # Luăm ID-ul ultimului Pull Request deschis pentru acest branch
-            PR_NUMBER=\$(curl -H "Authorization: token ${GITHUB_TOKEN}" ${REPO_URL}/pulls?head=dicatalin:${env.BRANCH_NAME} | jq '.[0].number')
-            
-            # Adăugăm comentariul dacă am găsit un PR
-            if [ "\$PR_NUMBER" != "null" ]; then
-                curl -H "Authorization: token ${GITHUB_TOKEN}" \
-                     -X POST \
-                     -d '{"body": "❌ Jenkins: Build-ul a eșuat la etapa de Testare/Linting. Te rog verifică log-urile din consola locală!"}' \
-                     ${REPO_URL}/issues/\$PR_NUMBER/comments
-            fi
-            """
+            // "gh pr comment" detectează automat PR-ul de pe branch-ul curent
+            sh 'gh pr comment --body "❌ Jenkins CI: Testele au eșuat. Verifică log-urile în consola Jenkins!" || echo "Nu s-a găsit PR deschis."'
         }
     }
 }
