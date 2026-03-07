@@ -22,3 +22,25 @@ create database biblioteca;
 CREATE USER 'bibliotecar'@'%' IDENTIFIED BY 'passsecr';
 GRANT ALL PRIVILEGES ON biblioteca.* TO 'bibliotecar'@'%';
 ```
+
+## teste
+
+#### Code linting
+
+```bash
+pip install flake8 ruff
+```
+
+```bash
+flake8 . --exclude=venv
+```
+
+```bash
+ruff check .
+ruff check . --fix
+```
+
+#### Unit testing
+
+
+
