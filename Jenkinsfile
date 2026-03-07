@@ -18,7 +18,7 @@ pipeline {
                 # 2. Activăm mediul și instalăm dependințele
                 . venv/bin/activate
                 pip install --upgrade pip
-                pip install django mysqlclient
+                pip install django
                 pip install ruff
                 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
                 
