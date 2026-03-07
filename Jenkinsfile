@@ -18,7 +18,8 @@ pipeline {
                 . venv/bin/activate
                 pip install --upgrade pip
                 pip install django
-                pip install ruff -r requirements.txt
+                pip install ruff
+                if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
                 ruff check . --exclude migrations
                 python manage.py test --noinput
                 '''
