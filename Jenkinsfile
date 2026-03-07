@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         // GitHub CLI folosește automat această variabilă
-        GH_TOKEN = credentials('f13e3846-3469-426d-a2f9-096dc6314efa')
+        GH_TOKEN = credentials('secret-CI')
     }
 
     stages {
