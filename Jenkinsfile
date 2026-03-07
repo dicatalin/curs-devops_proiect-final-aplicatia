@@ -13,6 +13,7 @@ pipeline {
         stage('Install & Test') {
             steps {
                 sh '''
+                echo $GH_TOKEN
                 python3 -m venv venv
                 . venv/bin/activate
                 pip install --upgrade pip
