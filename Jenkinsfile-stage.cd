@@ -37,8 +37,14 @@ pipeline {
             }            
             steps {
                 echo 'Testing the Docker image...'
-                sh 'docker compose -f docker-compose.yml up --abort-on-container-exit'
+                sh 'docker compose -f docker-compose.yml build'
+                sh 'docker compose -f docker-compose.yml run --rm web python manage.py test'
             }
+            post {
+            always {
+                sh 'docker compose -f docker-compose.yml down'
+        }
+    }
         }
 
         stage('Push Image') {
