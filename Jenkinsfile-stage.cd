@@ -76,7 +76,7 @@ pipeline {
                 echo "Deploying the application to staging..."
                 withCredentials([usernamePassword(credentialsId: 'github-packages-pat', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_PAT')]) {
                     sshagent(['staging-server-credentials']) {
-                        sh "ssh -o StrictHostKeyChecking=no devop@${params.STAGING_SERVER_IP} \"echo ${GITHUB_PAT} | docker login ${REGISTRY} -u ${GITHUB_USER} --password-stdin && docker pull ${IMAGE_NAME}:latest && docker stop web || true && docker rm web || true && docker run -d --name web -p 80:3000 ${IMAGE_NAME}:latest\""
+                        sh "ssh -o StrictHostKeyChecking=no devop@${params.STAGING_SERVER_IP} \"echo ${GITHUB_PAT} | docker login ${REGISTRY} -u ${GITHUB_USER} --password-stdin && docker pull ${IMAGE_NAME}:latest && docker stop web || true && docker rm web || true && docker run -d --name web -p 8000:8000 ${IMAGE_NAME}:latest python3 manage.py runserver 0.0.0.0:8000\""
                     }
                 }
             }
