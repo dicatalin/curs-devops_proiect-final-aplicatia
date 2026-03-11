@@ -11,7 +11,15 @@ WORKDIR /app
 COPY . .
 
 # Instalare dependinte
-RUN apt-get update && apt-get install python3-dev default-libmysqlclient-dev build-essential pkg-config
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    python3-dev \
+    default-libmysqlclient-dev \
+    build-essential \
+    pkg-config && \
+    rm -rf /var/lib/apt/lists/*
+
+# Instalare Django
 RUN pip install django mysqlclient
 
 RUN pip install --upgrade pip
