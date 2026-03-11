@@ -21,6 +21,9 @@ python manage.py startapp biblioteca
 create database biblioteca;
 CREATE USER 'bibliotecar'@'%' IDENTIFIED BY 'passsecr';
 GRANT ALL PRIVILEGES ON biblioteca.* TO 'bibliotecar'@'%';
+
+GRANT ALL PRIVILEGES ON `test_%`.* TO 'bibliotecar'@'%';
+FLUSH PRIVILEGES;
 ```
 
 ## teste

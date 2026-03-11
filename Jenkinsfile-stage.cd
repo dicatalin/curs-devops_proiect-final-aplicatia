@@ -1,0 +1,41 @@
+pipeline {
+    // Define a global agent 'none' to enforce per-stage agent definitions
+    agent none
+    environment {
+        // GitHub CLI folosește automat această variabilă
+        GH_TOKEN = credentials('secret-CI')
+        DB_NAME = credentials('DB_NAME_ID')
+        DB_USER = credentials('DB_USER_ID')
+        DB_PASSWORD = credentials('DB_PASSWORD_ID')
+    }
+
+    options {
+        // Set a global timeout for the entire pipeline to prevent it from running indefinitely.
+        timeout(time: 30, unit: 'MINUTES')
+    }
+
+    stages {
+        stage('Checkout') {
+            // This stage can run on any available agent
+            agent any
+            options {
+                timeout(time: 5, unit: 'MINUTES')
+            }            
+            steps {
+                echo "Checking out code..."
+                checkout scm
+            }
+        }
+
+        stage('Test Image') {
+            agent any
+            options {
+                timeout(time: 10, unit: 'MINUTES')
+            }            
+            steps {
+                echo 'Testing the Docker image...'
+                sh 'docker compose -f docker-compose.yml up --abort-on-container-exit'
+            }
+        }
+    }
+}
