@@ -31,11 +31,13 @@ pipeline {
         stage('Test Image') {
             agent any
             options {
-                timeout(time: 10, unit: 'MINUTES')
+                timeout(time: 3, unit: 'MINUTES')
             }            
             steps {
                 echo 'Testing the Docker image...'
-                sh 'docker compose -f docker-compose.yml up --abort-on-container-exit'
+                sh 'docker compose -f docker-compose.yml up -d --abort-on-container-exit'
+                sh 'docker compose exec web python manage.py makemigrations'
+                sh 'docker compose exec web python manage.py migrate
             }
         }
     }
