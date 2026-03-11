@@ -17,6 +17,10 @@ pipeline {
         timeout(time: 30, unit: 'MINUTES')
     }
 
+    parameters {
+        string(name: 'STAGING_SERVER_IP', defaultValue: '192.168.122.182', description: 'IP address of the staging server')
+    }
+
     stages {
         stage('Checkout') {
             // This stage can run on any available agent
@@ -59,6 +63,20 @@ pipeline {
                         def customImage = docker.build("${IMAGE_NAME}:${env.BUILD_NUMBER}", '.')
                         customImage.push()
                         customImage.push('latest')
+                    }
+                }
+            }
+        }
+        stage('Deploy to Staging') {
+            agent any
+            options {
+                timeout(time: 5, unit: 'MINUTES')
+            }
+            steps {
+                echo "Deploying the application to staging..."
+                withCredentials([usernamePassword(credentialsId: 'github-packages-pat', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_PAT')]) {
+                    sshagent(['staging-server-credentials']) {
+                        sh "ssh -o StrictHostKeyChecking=no devop@${params.STAGING_SERVER_IP} \"echo ${GITHUB_PAT} | docker login ${REGISTRY} -u ${GITHUB_USER} --password-stdin && docker pull ${IMAGE_NAME}:latest && docker stop web || true && docker rm web || true && docker run -d --name web -p 80:3000 ${IMAGE_NAME}:latest\""
                     }
                 }
             }
