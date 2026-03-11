@@ -10,9 +10,9 @@ WORKDIR /app
 
 COPY . .
 
-# Instalăm dependențele sistemului necesare pentru psycopg2 (driverul de Postgres)
-RUN apt-get update && apt-get install -y gcc
-RUN pip install django mysqlclient python-dotenv
+# Instalare dependinte
+RUN apt-get update && apt-get install python3-dev default-libmysqlclient-dev build-essential pkg-config
+RUN pip install django mysqlclient
 
 RUN pip install --upgrade pip
 RUN pip install django
