@@ -8,6 +8,8 @@ ENV PYTHONUNBUFFERED 1
 # Setăm directorul de lucru în container
 WORKDIR /app
 
+COPY . .
+
 # Instalăm dependențele sistemului necesare pentru psycopg2 (driverul de Postgres)
 RUN apt-get update && apt-get install -y libpq-dev gcc
 
