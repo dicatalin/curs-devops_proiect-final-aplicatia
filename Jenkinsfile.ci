@@ -32,8 +32,8 @@ pipeline {
                     pip install -r requirements.txt
                 fi
 
-                linting=$(ruff check . --exclude migrations)
-                unitt=$(python manage.py test --noinput)
+                ruff check . --exclude migrations
+                python manage.py test --noinput
                 '''
             }
         }
@@ -75,7 +75,7 @@ pipeline {
             echo "Branch detectat: $CURRENT_BRANCH"
 
             gh pr comment "$CURRENT_BRANCH" \
-              --body "❌ Jenkins CI: Testele au eșuat pe branch-ul $CURRENT_BRANCH. Verifică log-urile Jenkins. $linting" \
+              --body "❌ Jenkins CI: Testele au eșuat pe branch-ul $CURRENT_BRANCH. Verifică log-urile Jenkins." \
               || echo "Nu s-a găsit PR deschis pentru acest branch."
             '''
         }
