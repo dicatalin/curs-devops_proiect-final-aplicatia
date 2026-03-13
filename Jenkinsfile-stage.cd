@@ -83,8 +83,8 @@ pipeline {
                 // În acest mod, Jenkins va injecta variabilele de mediu direct
                 sh '''
                     /usr/bin/ansible-playbook deploy.yml \
-                    -i inventory.ini \
                     -u devop \
+                    -e "ansible_host=$STAGING_IP" \
                     -e "image_to_deploy=$FULL_IMAGE" \
                     -e "gh_user=$G_USER" \
                     -e "gh_pat=$G_PAT" \
