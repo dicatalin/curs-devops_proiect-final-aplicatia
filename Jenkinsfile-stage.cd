@@ -84,7 +84,7 @@ pipeline {
                 sh '''
                     /usr/bin/ansible-playbook deploy.yml \
                     -i inventory.ini \
-                    -e "ansible_host=$STAGING_IP" \
+                    -u devop \
                     -e "image_to_deploy=$FULL_IMAGE" \
                     -e "gh_user=$G_USER" \
                     -e "gh_pat=$G_PAT" \
