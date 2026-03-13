@@ -68,6 +68,7 @@ pipeline {
             }
         }
         stage('Deploy with Ansible') {
+    agent any
     environment {
         // Preluăm secretele pentru DB
         DB_NAME = credentials('DB_NAME_ID')
