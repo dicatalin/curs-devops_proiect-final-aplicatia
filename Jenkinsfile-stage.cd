@@ -82,9 +82,9 @@ pipeline {
                 // Folosim ghilimele triple SIMPLE (''' ''') pentru a evita "Bad substitution"
                 // În acest mod, Jenkins va injecta variabilele de mediu direct
                 sh '''
-                    /usr/bin/ansible-playbook deploy.yml \
+                    ansible-playbook deploy.yml \
                     -u devop \
-                    -e "ansible_host=$STAGING_IP" \
+                    -i $STAGING_IP \
                     -e "image_to_deploy=$FULL_IMAGE" \
                     -e "gh_user=$G_USER" \
                     -e "gh_pat=$G_PAT" \
