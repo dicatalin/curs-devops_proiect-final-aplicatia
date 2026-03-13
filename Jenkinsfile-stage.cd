@@ -67,19 +67,24 @@ pipeline {
                 }
             }
         }
-        stage('Deploy to Staging') {
-            agent any
-            options {
-                timeout(time: 5, unit: 'MINUTES')
-            }
-            steps {
-                echo "Deploying the application to staging..."
-                withCredentials([usernamePassword(credentialsId: 'github-packages-pat', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_PAT')]) {
-                    sshagent(['staging-server-credentials']) {
-                        sh "ssh -o StrictHostKeyChecking=no devop@${params.STAGING_SERVER_IP} \"echo ${GITHUB_PAT} | docker login ${REGISTRY} -u ${GITHUB_USER} --password-stdin && docker pull ${IMAGE_NAME}:latest && docker stop web || true && docker rm web || true && docker run -d --name web -p 8000:8000 ${IMAGE_NAME}:latest python3 manage.py runserver 0.0.0.0:8000\""
-                    }
-                }
-            }
+        stage('Deploy with Ansible') {
+    environment {
+        
+        DB_NAME = credentials('DB_NAME_ID')
+        DB_USER = credentials('DB_USER_STG_ID')
+        DB_PASS = credentials('DB_PASSWORD_STG_ID')
+        DB_HOST = credentials('DB_HOST_ID')
+    }
+    steps {
+        withCredentials([usernamePassword(credentialsId: 'github-packages-pat', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_PAT')]) {
+            // Ansible va "vedea" aceste variabile de mediu automat dacă folosim lookup('env', ...)
+            sh """
+                    ansible-playbook deploy.yml \
+                    -i inventory.ini \
+                    -e "target_ip=${params.STAGING_SERVER_IP}"
+                """
         }
+    }
+}
     }
 }
