@@ -84,7 +84,7 @@ pipeline {
                 sh '''
                     ansible-playbook deploy.yml \
                     -u devop \
-                    -I $STAGING_IP \
+                    -i $STAGING_IP, \
                     -e "image_to_deploy=$FULL_IMAGE" \
                     -e "gh_user=$G_USER" \
                     -e "gh_pat=$G_PAT" \
