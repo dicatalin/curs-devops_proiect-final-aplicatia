@@ -81,15 +81,15 @@ pipeline {
     }
     steps {
         sshagent(['staging-server-credentials']) {
-            withCredentials([usernamePassword(credentialsId: 'github-packages-pat', usernameVariable: 'G_USER', passwordVariable: 'G_PAT')]) {
+            withCredentials([usernamePassword(credentialsId: 'github-packages-pat', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_PAT')]) {
                 // Trimitem calea imaginii ca variabilă 'image_to_deploy'
                 sh """
                     ansible-playbook deploy.yml \
                     -i inventory.ini \
                     -e "target_ip=${params.STAGING_SERVER_IP}" \
                     -e "image_to_deploy=${FULL_IMAGE_PATH}" \
-                    -e "gh_user=${G_USER}" \
-                    -e "gh_pat=${G_PAT}"
+                    -e "gh_user=${GITHUB_USER}" \
+                    -e "gh_pat=${GITHUB_PAT}"
                 """
             }
         }
