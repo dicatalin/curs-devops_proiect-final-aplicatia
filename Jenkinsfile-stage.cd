@@ -69,20 +69,28 @@ pipeline {
         }
         stage('Deploy with Ansible') {
     environment {
-        
+        // Preluăm secretele pentru DB
         DB_NAME = credentials('DB_NAME_ID')
-        DB_USER = credentials('DB_USER_STG_ID')
-        DB_PASS = credentials('DB_PASSWORD_STG_ID')
+        DB_USER = credentials('DB_USER_ID')
+        DB_PASS = credentials('DB_PASSWORD_ID')
         DB_HOST = credentials('DB_HOST_ID')
+        
+        // Construim URL-ul complet al imaginii pe care tocmai am făcut push
+        FULL_IMAGE_PATH = "${REGISTRY}/${IMAGE_NAME}:${env.BUILD_NUMBER}"
     }
     steps {
-        withCredentials([usernamePassword(credentialsId: 'github-packages-pat', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_PAT')]) {
-            // Ansible va "vedea" aceste variabile de mediu automat dacă folosim lookup('env', ...)
-            sh """
+        sshagent(['staging-server-credentials']) {
+            withCredentials([usernamePassword(credentialsId: 'github-packages-pat', usernameVariable: 'G_USER', passwordVariable: 'G_PAT')]) {
+                // Trimitem calea imaginii ca variabilă 'image_to_deploy'
+                sh """
                     ansible-playbook deploy.yml \
                     -i inventory.ini \
-                    -e "target_ip=${params.STAGING_SERVER_IP}"
+                    -e "target_ip=${params.STAGING_SERVER_IP}" \
+                    -e "image_to_deploy=${FULL_IMAGE_PATH}" \
+                    -e "gh_user=${G_USER}" \
+                    -e "gh_pat=${G_PAT}"
                 """
+            }
         }
     }
 }

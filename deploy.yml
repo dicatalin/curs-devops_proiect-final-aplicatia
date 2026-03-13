@@ -1,14 +1,28 @@
-- name: Run Docker container with DB config
-  community.docker.docker_container:
-    name: web
-    image: "{{ image_name }}"
-    state: started
-    recreate: yes
-    published_ports:
-      - "8000:8000"
-    env:
-      DB_NAME: "{{ lookup('env', 'DB_NAME') }}"
-      DB_USER: "{{ lookup('env', 'DB_USER') }}"
-      DB_PASS: "{{ lookup('env', 'DB_PASS') }}"
-      DB_HOST: "{{ lookup('env', 'DB_HOST') }}"
-    command: "python3 manage.py runserver 0.0.0.0:8000"
+---
+- name: Deploy to Staging
+  hosts: staging
+  tasks:
+    - name: Login to GitHub Packages
+      community.docker.docker_login:
+        registry_url: ghcr.io
+        username: "{{ gh_user }}"
+        password: "{{ gh_pat }}"
+
+    - name: Pull the specific build image
+      community.docker.docker_image:
+        name: "{{ image_to_deploy }}"
+        source: pull
+
+    - name: Run the container
+      community.docker.docker_container:
+        name: web
+        image: "{{ image_to_deploy }}"
+        state: started
+        recreate: yes # Forțează recrearea chiar dacă numele e același
+        published_ports:
+          - "8000:8000"
+        env:
+          DB_NAME: "{{ lookup('env', 'DB_NAME') }}"
+          DB_USER: "{{ lookup('env', 'DB_USER') }}"
+          DB_PASS: "{{ lookup('env', 'DB_PASS') }}"
+          DB_HOST: "{{ lookup('env', 'DB_HOST') }}"
