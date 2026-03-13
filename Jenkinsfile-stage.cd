@@ -72,32 +72,27 @@ pipeline {
         stage('Deploy with Ansible') {
     agent any
     environment {
-        // Preluăm secretele pentru DB
-        DB_NAME = credentials('DB_NAME_ID')
-        DB_USER = credentials('DB_USER_ID')
-        DB_PASS = credentials('DB_PASSWORD_ID')
-        DB_HOST = credentials('DB_HOST_ID')
-        
-        // Construim URL-ul complet al imaginii pe care tocmai am făcut push
-        FULL_IMAGE_PATH = "${REGISTRY}/${IMAGE_NAME}:${env.BUILD_NUMBER}"
+        // Definim o variabilă simplă pentru a o folosi ușor în script
+        STAGING_IP = "${params.STAGING_SERVER_IP}"
+        FULL_IMAGE = "${IMAGE_NAME}:${env.BUILD_NUMBER}"
     }
     steps {
         sshagent(['staging-server-credentials']) {
-            withCredentials([usernamePassword(credentialsId: 'github-packages-pat', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_PAT')]) {
-                // Trimitem calea imaginii ca variabilă 'image_to_deploy'
-sh '''
-    # 1. Ne asigurăm că Ansible este găsit
-    export PATH=$PATH:/var/lib/jenkins/.local/bin:/usr/local/bin
-    
-    # 2. Folosim variabile de mediu (fără ${} de Groovy) pentru securitate
-    # Observă că am scos ghcr.io/ din față dacă REGISTRY e deja ghcr.io
-    ansible-playbook deploy.yml \
-        -i ${params.STAGING_SERVER_IP}, \
-        -u devop \
-        -e "image_to_deploy=${REGISTRY}/${IMAGE_NAME}:${BUILD_NUMBER}" \
-        -e "gh_user=${GITHUB_USER}" \
-        -e "gh_pat=${GITHUB_PAT}"
-'''
+            withCredentials([usernamePassword(credentialsId: 'github-packages-pat', usernameVariable: 'G_USER', passwordVariable: 'G_PAT')]) {
+                // Folosim ghilimele triple SIMPLE (''' ''') pentru a evita "Bad substitution"
+                // În acest mod, Jenkins va injecta variabilele de mediu direct
+                sh '''
+                    /usr/bin/ansible-playbook deploy.yml \
+                    -i inventory.ini \
+                    -e "ansible_host=$STAGING_IP" \
+                    -e "image_to_deploy=$FULL_IMAGE" \
+                    -e "gh_user=$G_USER" \
+                    -e "gh_pat=$G_PAT" \
+                    -e "DB_NAME=$DB_NAME" \
+                    -e "DB_USER=$DB_USER" \
+                    -e "DB_PASS=$DB_PASS" \
+                    -e "DB_HOST=$DB_HOST"
+                '''
             }
         }
     }
