@@ -74,7 +74,8 @@ pipeline {
     environment {
         // Definim o variabilă simplă pentru a o folosi ușor în script
         STAGING_IP = "${params.STAGING_SERVER_IP}"
-        FULL_IMAGE = "${IMAGE_NAME}:${env.BUILD_NUMBER}"
+        // FULL_IMAGE = "${IMAGE_NAME}:${env.BUILD_NUMBER}"
+        FULL_IMAGE = "${IMAGE_NAME}:latest"
     }
     steps {
         sshagent(['staging-server-credentials']) {
