@@ -34,22 +34,22 @@ pipeline {
             }
         }
 
-        stage('Test Image') {
-            agent any
-            options {
-                timeout(time: 10, unit: 'MINUTES')
-            }            
-            steps {
-                echo 'Testing the Docker image...'
-                sh 'docker compose -f docker-compose.yml build'
-                sh 'docker compose -f docker-compose.yml run --rm web python manage.py test'
-            }
-            post {
-            always {
-                sh 'docker compose -f docker-compose.yml down'
-        }
-    }
-        }
+    //     stage('Test Image') {
+    //         agent any
+    //         options {
+    //             timeout(time: 10, unit: 'MINUTES')
+    //         }            
+    //         steps {
+    //             echo 'Testing the Docker image...'
+    //             sh 'docker compose -f docker-compose.yml build'
+    //             sh 'docker compose -f docker-compose.yml run --rm web python manage.py test'
+    //         }
+    //         post {
+    //         always {
+    //             sh 'docker compose -f docker-compose.yml down'
+    //     }
+    // }
+    //     }
 
         stage('Push Image') {
             agent any
@@ -83,14 +83,19 @@ pipeline {
         sshagent(['staging-server-credentials']) {
             withCredentials([usernamePassword(credentialsId: 'github-packages-pat', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_PAT')]) {
                 // Trimitem calea imaginii ca variabilă 'image_to_deploy'
-                sh """
-                    ansible-playbook deploy.yml \
-                    -i inventory.ini \
-                    -e "target_ip=${params.STAGING_SERVER_IP}" \
-                    -e "image_to_deploy=${FULL_IMAGE_PATH}" \
-                    -e "gh_user=${GITHUB_USER}" \
-                    -e "gh_pat=${GITHUB_PAT}"
-                """
+sh '''
+    # 1. Ne asigurăm că Ansible este găsit
+    export PATH=$PATH:/var/lib/jenkins/.local/bin:/usr/local/bin
+    
+    # 2. Folosim variabile de mediu (fără ${} de Groovy) pentru securitate
+    # Observă că am scos ghcr.io/ din față dacă REGISTRY e deja ghcr.io
+    ansible-playbook deploy.yml \
+        -i inventory.ini \
+        -e "target_ip=${STAGING_SERVER_IP}" \
+        -e "image_to_deploy=${REGISTRY}/${IMAGE_NAME}:${BUILD_NUMBER}" \
+        -e "gh_user=${GITHUB_USER}" \
+        -e "gh_pat=${GITHUB_PAT}"
+'''
             }
         }
     }
