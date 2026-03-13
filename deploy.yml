@@ -1,6 +1,6 @@
 ---
 - name: Deploy to Staging
-  hosts: staging
+  hosts: all
   tasks:
     - name: Login to GitHub Packages
       community.docker.docker_login:
