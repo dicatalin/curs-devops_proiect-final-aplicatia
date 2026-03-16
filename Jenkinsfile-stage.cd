@@ -34,22 +34,22 @@ pipeline {
             }
         }
 
-    //     stage('Test Image') {
-    //         agent any
-    //         options {
-    //             timeout(time: 10, unit: 'MINUTES')
-    //         }            
-    //         steps {
-    //             echo 'Testing the Docker image...'
-    //             sh 'docker compose -f docker-compose.yml build'
-    //             sh 'docker compose -f docker-compose.yml run --rm web python manage.py test'
-    //         }
-    //         post {
-    //         always {
-    //             sh 'docker compose -f docker-compose.yml down'
-    //     }
-    // }
-    //     }
+        stage('Test Image') {
+            agent any
+            options {
+                timeout(time: 10, unit: 'MINUTES')
+            }            
+            steps {
+                echo 'Testing the Docker image...'
+                sh 'docker compose -f docker-compose.yml build'
+                sh 'docker compose -f docker-compose.yml run --rm web python manage.py test'
+            }
+            post {
+            always {
+                sh 'docker compose -f docker-compose.yml down'
+        }
+    }
+        }
 
 // comentata doar pentru teste
 
