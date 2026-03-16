@@ -1,7 +1,6 @@
 ---
 - name: Deploy to Staging
   hosts: all
-  become: yes  # Adăugat dacă utilizatorul SSH nu are drepturi directe de docker
   
   tasks:
     - name: Login to GitHub Packages
@@ -14,7 +13,7 @@
     - name: Pull the specific build image
       community.docker.docker_image:
         # Verifică dacă image_to_deploy are deja ghcr.io/. Dacă nu, lasă-l așa:
-        name: "ghcr.io/{{ image_to_deploy }}"
+        name: "{{ image_to_deploy }}"
         source: pull
         force_source: yes # Forțează pull-ul chiar dacă imaginea există local
       register: pull_result
@@ -22,7 +21,7 @@
     - name: Run the container
       community.docker.docker_container:
         name: web
-        image: "ghcr.io/{{ image_to_deploy }}"
+        image: "{{ image_to_deploy }}"
         state: started
         recreate: yes
         pull: yes # Mai o verificare extra pentru pull la nivel de container
