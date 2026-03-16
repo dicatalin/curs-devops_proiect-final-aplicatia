@@ -14,7 +14,6 @@ from pathlib import Path
 import os
 
 
-
 DB_HOST = os.environ.get('DB_HOST', '127.0.0.1')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
