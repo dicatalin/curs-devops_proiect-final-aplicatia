@@ -53,22 +53,22 @@ pipeline {
 
 // comentata doar pentru teste
 
-        // stage('Push Image') {
-        //     agent any
-        //     options {
-        //         timeout(time: 10, unit: 'MINUTES')
-        //     }            
-        //     steps {
-        //         script {
-        //             echo "Pushing the Docker image to ${env.IMAGE_NAME}..."
-        //             docker.withRegistry("https://${REGISTRY}", 'github-packages-pat') {
-        //                 def customImage = docker.build("${IMAGE_NAME}:${env.BUILD_NUMBER}", '.')
-        //                 customImage.push()
-        //                 customImage.push('latest')
-        //             }
-        //         }
-        //     }
-        // }
+        stage('Push Image') {
+            agent any
+            options {
+                timeout(time: 10, unit: 'MINUTES')
+            }            
+            steps {
+                script {
+                    echo "Pushing the Docker image to ${env.IMAGE_NAME}..."
+                    docker.withRegistry("https://${REGISTRY}", 'github-packages-pat') {
+                        def customImage = docker.build("${IMAGE_NAME}:${env.BUILD_NUMBER}", '.')
+                        customImage.push()
+                        customImage.push('latest')
+                    }
+                }
+            }
+        }
         stage('Deploy with Ansible') {
     agent any
     environment {
