@@ -1,17 +1,22 @@
 ---
 - name: Deploy to Staging
   hosts: all
+  
   tasks:
     - name: Login to GitHub Packages
       community.docker.docker_login:
         registry_url: ghcr.io
         username: "{{ gh_user }}"
         password: "{{ gh_pat }}"
+        reauthorize: yes # Forțează re-autentificarea pentru a evita token-uri expirate
 
     - name: Pull the specific build image
       community.docker.docker_image:
+        # Verifică dacă image_to_deploy are deja ghcr.io/. Dacă nu, lasă-l așa:
         name: "{{ image_to_deploy }}"
         source: pull
+        force_source: yes # Forțează pull-ul chiar dacă imaginea există local
+      register: pull_result
 
     - name: Run the container
       community.docker.docker_container:
@@ -19,6 +24,8 @@
         image: "{{ image_to_deploy }}"
         state: started
         recreate: yes
+        pull: yes # Mai o verificare extra pentru pull la nivel de container
+        restart_policy: always
         published_ports:
           - "8000:8000"
         env:
@@ -29,3 +36,9 @@
         command: >
           sh -c "python3 manage.py migrate --noinput && 
                  python3 manage.py runserver 0.0.0.0:8000"
+
+    - name: Clean up old images
+      community.docker.docker_prune:
+        images: yes
+        images_filters:
+          dangling: false # Opțional: curăță imaginile vechi/nefolosite
