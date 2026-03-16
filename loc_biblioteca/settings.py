@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 import os
-import sys # fix 3
 
 
 
@@ -32,7 +31,7 @@ SECRET_KEY = 'django-insecure-b^ttbod+1(hochiq%24=t$0(e7iv9)+mzmxv)7b&l9=(70u@ge
 DEBUG = True
 
 # ALLOWED_HOSTS = []
-ALLOWED_HOSTS = ['192.168.122.40', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['192.168.122.40', '192.168.122.182', 'localhost', '127.0.0.1']
 
 
 # Application definition
@@ -129,14 +128,14 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': os.environ.get('DB_NAME', 'myapp_db'),
         'USER': os.environ.get('DB_USER', 'user'),
-        'PASSWORD': os.environ.get('DB_PASS', 'passsecr'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'passsecr'),
         'HOST': DB_HOST,
         'PORT': os.environ.get('DB_PORT', '3306'),
     }
 }
 
-if 'test' in sys.argv:
-    DATABASES['default'] = {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': ':memory:',  # Rulează testele direct în RAM, super rapid!
-    }
+#if 'test' in sys.argv:
+#    DATABASES['default'] = {
+#        'ENGINE': 'django.db.backends.sqlite3',
+#        'NAME': ':memory:',  # Rulează testele direct în RAM, super rapid!
+#    }

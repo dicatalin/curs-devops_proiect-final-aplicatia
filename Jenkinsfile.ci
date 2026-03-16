@@ -4,6 +4,9 @@ pipeline {
     environment {
         // GitHub CLI folosește automat această variabilă
         GH_TOKEN = credentials('secret-CI')
+        DB_NAME = credentials('DB_NAME_ID')
+        DB_USER = credentials('DB_USER_ID')
+        DB_PASSWORD = credentials('DB_PASSWORD_ID')
     }
 
     stages {
@@ -25,15 +28,15 @@ pipeline {
                 . venv/bin/activate
 
                 pip install --upgrade pip
-                pip install django
+                pip install django mysqlclient
                 pip install ruff
 
                 if [ -f requirements.txt ]; then
                     pip install -r requirements.txt
                 fi
 
-                linting=$(ruff check . --exclude migrations)
-                unitt=$(python manage.py test --noinput)
+                ruff check . --exclude migrations
+                python manage.py test --noinput
                 '''
             }
         }
@@ -75,7 +78,7 @@ pipeline {
             echo "Branch detectat: $CURRENT_BRANCH"
 
             gh pr comment "$CURRENT_BRANCH" \
-              --body "❌ Jenkins CI: Testele au eșuat pe branch-ul $CURRENT_BRANCH. Verifică log-urile Jenkins. $linting" \
+              --body "❌ Jenkins CI: Testele au eșuat pe branch-ul $CURRENT_BRANCH. Verifică log-urile Jenkins." \
               || echo "Nu s-a găsit PR deschis pentru acest branch."
             '''
         }
