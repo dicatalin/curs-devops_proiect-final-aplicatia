@@ -138,3 +138,7 @@ DATABASES = {
 #        'ENGINE': 'django.db.backends.sqlite3',
 #        'NAME': ':memory:',  # Rulează testele direct în RAM, super rapid!
 #    }
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://stage-host.home.local',
+]
