@@ -2,7 +2,6 @@ pipeline {
     agent any
     
     environment {
-        // GitHub CLI folosește automat această variabilă
         GH_TOKEN = credentials('secret-CI')
         DB_NAME = credentials('DB_NAME_ID')
         DB_USER = credentials('DB_USER_ID')
@@ -10,78 +9,87 @@ pipeline {
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Install & Test') {
+        stage('Install Prerequisites') {
             steps {
                 sh '''
-                set -e
-
-                export GH_TOKEN=$GH_TOKEN
-
                 python3 -m venv venv
                 . venv/bin/activate
-
                 pip install --upgrade pip
-                pip install django mysqlclient
-                pip install ruff
-
+                pip install django mysqlclient ruff
                 if [ -f requirements.txt ]; then
                     pip install -r requirements.txt
                 fi
+                '''
+            }
+        }
 
+        stage('Linting (Ruff)') {
+            steps {
+                sh '''
+                . venv/bin/activate
                 ruff check . --exclude migrations
+                '''
+            }
+            post {
+                failure {
+                    addPrComment("❌ Testul de **linting** a eșuat. Verifică log-urile aici: ${env.BUILD_URL}console")
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                sh '''
+                . venv/bin/activate
                 python manage.py test --noinput
                 '''
+            }
+            post {
+                failure {
+                    addPrComment("❌ **Unit-testele** au eșuat. Verifică log-urile aici: ${env.BUILD_URL}console")
+                }
             }
         }
     }
 
     post {
-
         success {
-            echo '✅ Teste trecute. Încercăm merge automat...'
-
+            echo '✅ Toate etapele au trecut. Încercăm merge automat...'
             sh '''
             export GH_TOKEN=$GH_TOKEN
-
+            
+            # Detectăm branch-ul corect
             CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-
-            if [ "$CURRENT_BRANCH" = "HEAD" ]; then
-                CURRENT_BRANCH=${GIT_BRANCH#*/}
-            fi
-
-            echo "Branch detectat: $CURRENT_BRANCH"
-
-            gh pr merge "$CURRENT_BRANCH" --auto --merge \
-            || echo "Nu s-a putut face merge automat."
+            [ "$CURRENT_BRANCH" = "HEAD" ] && CURRENT_BRANCH=${GIT_BRANCH#*/}
+            
+            echo "Branch detectat pentru merge: $CURRENT_BRANCH"
+            gh pr merge "$CURRENT_BRANCH" --auto --merge || echo "Nu s-a putut face merge automat (posibil nu există PR)."
             '''
         }
+    }
+}
 
-        failure {
-            echo '❌ Teste eșuate. Adăugăm comentariu pe PR...'
+/**
+ * Helper pentru comentarii pe PR
+ */
+def addPrComment(String message) {
+    // Folosim env.GH_TOKEN pentru a accesa variabila din environment
+    withCredentials([string(credentialsId: 'secret-CI', variable: 'GH_TOKEN')]) {
+        sh """
+        export GH_TOKEN=${GH_TOKEN}
+        
+        CURRENT_BRANCH=\$(git rev-parse --abbrev-ref HEAD)
+        if [ "\$CURRENT_BRANCH" = "HEAD" ]; then
+            CURRENT_BRANCH=\${GIT_BRANCH#*/}
+        fi
 
-            sh '''
-            export GH_TOKEN=$GH_TOKEN
-
-            CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-
-            if [ "$CURRENT_BRANCH" = "HEAD" ]; then
-                CURRENT_BRANCH=${GIT_BRANCH#*/}
-            fi
-
-            echo "Branch detectat: $CURRENT_BRANCH"
-
-            gh pr comment "$CURRENT_BRANCH" \
-              --body "❌ Jenkins CI: Testele au eșuat pe branch-ul $CURRENT_BRANCH. Verifică log-urile Jenkins." \
-              || echo "Nu s-a găsit PR deschis pentru acest branch."
-            '''
-        }
-
+        gh pr comment "\$CURRENT_BRANCH" --body "${message}" || echo "Nu s-a găsit PR deschis."
+        """
     }
 }
