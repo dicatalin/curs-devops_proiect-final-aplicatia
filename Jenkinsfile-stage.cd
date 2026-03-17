@@ -38,6 +38,7 @@ pipeline {
                 sh "cat .version" 
                 sh "ls -la .version"
                 sh "ls -la ./"
+                sh "touch ./testc"
             }
         }
 
