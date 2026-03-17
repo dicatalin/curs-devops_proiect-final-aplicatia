@@ -10,6 +10,7 @@ pipeline {
         DB_HOST = credentials('DB_HOST_ID')
         REGISTRY = "ghcr.io"
         IMAGE_NAME = "${REGISTRY}/dicatalin/curs-devops_proiect-final-aplicatia".toLowerCase()
+        APP_VERSION = "1.0.${env.BUILD_NUMBER}-STAGING"
     }
 
     options {
@@ -31,6 +32,8 @@ pipeline {
             steps {
                 echo "Checking out code..."
                 checkout scm
+                sh "echo '${env.APP_VERSION}' > .version"
+                echo "Versiune setată: ${env.APP_VERSION}"
             }
         }
 
