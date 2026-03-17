@@ -15,6 +15,8 @@ deactivate
 django-admin startproject loc_biblioteca .
 python manage.py startapp biblioteca
 
+
+docker exec -it web python manage.py createsuperuser
 ```
 
 ```sql
