@@ -1,0 +1,105 @@
+pipeline {
+    // Define a global agent 'none' to enforce per-stage agent definitions
+    agent none
+    environment {
+        // GitHub CLI folosește automat această variabilă
+        DB_NAME = credentials('PROD_DB_NAME_ID')
+        DB_USER = credentials('PROD_DB_USER_ID')
+        DB_PASS = credentials('PROD_DB_PASSWORD_ID')
+        DB_HOST = credentials('PROD_DB_HOST_ID')
+        REGISTRY = "ghcr.io"
+        IMAGE_NAME = "${REGISTRY}/dicatalin/curs-devops_proiect-final-aplicatia".toLowerCase()
+        //APP_VERSION = "1.0.${env.BUILD_NUMBER}-STAGING"
+    }
+
+    options {
+        // Set a global timeout for the entire pipeline to prevent it from running indefinitely.
+        timeout(time: 30, unit: 'MINUTES')
+    }
+
+    parameters {
+        string(name: 'STAGING_SERVER_IP', defaultValue: '192.168.122.76', description: 'IP address of the staging server')
+    }
+
+    // stages {
+    //     stage('Checkout') {
+    //         // This stage can run on any available agent
+    //         agent any
+    //         options {
+    //             timeout(time: 5, unit: 'MINUTES')
+    //         }            
+    //         steps {
+    //             echo "Checking out code..."
+    //             checkout scm
+    //             sh "echo '1.0.${env.BUILD_NUMBER}-STAGING' > .versionfile"
+    //             echo "Versiune setată: 1.0.${env.BUILD_NUMBER}-STAGING"
+    //         }
+    //     }
+
+    //     stage('Test Image') {
+    //         agent any
+    //         options {
+    //             timeout(time: 10, unit: 'MINUTES')
+    //         }            
+    //         steps {
+    //             echo 'Testing the Docker image...'
+    //             sh 'docker compose -f docker-compose.yml build'
+    //             sh 'docker compose -f docker-compose.yml run --rm web python manage.py test'
+    //         }
+    //         post {
+    //         always {
+    //             sh 'docker compose -f docker-compose.yml down'
+    //     }
+    // }
+    //     }
+
+// comentata doar pentru teste
+
+        // stage('Push Image') {
+        //     agent any
+        //     options {
+        //         timeout(time: 10, unit: 'MINUTES')
+        //     }            
+        //     steps {
+        //         script {
+        //             echo "Pushing the Docker image to ${env.IMAGE_NAME}..."
+        //             docker.withRegistry("https://${REGISTRY}", 'github-packages-pat') {
+        //                 def customImage = docker.build("${IMAGE_NAME}:${env.BUILD_NUMBER}", '.')
+        //                 customImage.push()
+        //                 customImage.push('latest')
+        //             }
+        //         }
+        //     }
+        // }
+        stage('Deploy with Ansible') {
+    agent any
+    environment {
+        // Definim o variabilă simplă pentru a o folosi ușor în script
+        STAGING_IP = "${params.STAGING_SERVER_IP}"
+        FULL_IMAGE = "${IMAGE_NAME}:latest"
+        //FULL_IMAGE = "${IMAGE_NAME}:latest"
+        //FULL_IMAGE = "${IMAGE_NAME}:47"
+    }
+    steps {
+        sshagent(['prod-server-credentials']) {
+            withCredentials([usernamePassword(credentialsId: 'github-packages-pat', usernameVariable: 'G_USER', passwordVariable: 'G_PAT')]) {
+                // Folosim ghilimele triple SIMPLE (''' ''') pentru a evita "Bad substitution"
+                // În acest mod, Jenkins va injecta variabilele de mediu direct
+                sh '''
+                    ansible-playbook deploy-prod.yml \
+                    -u devop \
+                    -i $STAGING_IP, \
+                    -e "image_to_deploy=$FULL_IMAGE" \
+                    -e "gh_user=$G_USER" \
+                    -e "gh_pat=$G_PAT" \
+                    -e "DB_NAME=$DB_NAME" \
+                    -e "DB_USER=$DB_USER" \
+                    -e "DB_PASS=$DB_PASSWORD" \
+                    -e "DB_HOST=$DB_HOST"
+                '''
+            }
+        }
+    }
+}
+    }
+}
