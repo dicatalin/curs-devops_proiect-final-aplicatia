@@ -3,14 +3,13 @@ pipeline {
     agent none
     environment {
         // GitHub CLI folosește automat această variabilă
-        GH_TOKEN = credentials('secret-CI')
-        DB_NAME = credentials('DB_NAME_ID')
-        DB_USER = credentials('DB_USER_ID')
-        DB_PASS = credentials('DB_PASSWORD_ID')
-        DB_HOST = credentials('DB_HOST_ID')
+        DB_NAME = credentials('STAGE_DB_NAME_ID')
+        DB_USER = credentials('STAGE_DB_USER_ID')
+        DB_PASS = credentials('STAGE_DB_PASSWORD_ID')
+        DB_HOST = credentials('STAGE_DB_HOST_ID')
         REGISTRY = "ghcr.io"
         IMAGE_NAME = "${REGISTRY}/dicatalin/curs-devops_proiect-final-aplicatia".toLowerCase()
-        APP_VERSION = "1.0.${env.BUILD_NUMBER}-STAGING"
+        //APP_VERSION = "1.0.${env.BUILD_NUMBER}-STAGING"
     }
 
     options {
@@ -34,11 +33,6 @@ pipeline {
                 checkout scm
                 sh "echo '1.0.${env.BUILD_NUMBER}-STAGING' > .versionfile"
                 echo "Versiune setată: 1.0.${env.BUILD_NUMBER}-STAGING"
-                // Verificare:
-                sh "cat .versionfile" 
-                sh "ls -la .versionfile"
-                sh "ls -la ./"
-                sh "touch ./testc"
             }
         }
 
