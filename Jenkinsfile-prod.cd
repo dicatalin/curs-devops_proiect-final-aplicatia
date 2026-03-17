@@ -21,7 +21,7 @@ pipeline {
         string(name: 'STAGING_SERVER_IP', defaultValue: '192.168.122.76', description: 'IP address of the staging server')
     }
 
-    // stages {
+stages {
     //     stage('Checkout') {
     //         // This stage can run on any available agent
     //         agent any
