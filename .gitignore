@@ -1,3 +1,4 @@
 __pycache__/
 .env
 exporet_var.sh
+.version
