@@ -18,7 +18,7 @@ pipeline {
     }
 
     parameters {
-        string(name: 'STAGING_SERVER_IP', defaultValue: '192.168.122.76', description: 'IP address of the staging server')
+        string(name: 'PROD_SERVER_IP', defaultValue: '192.168.122.76', description: 'IP address of the staging server')
     }
 
 stages {
@@ -75,7 +75,7 @@ stages {
     agent any
     environment {
         // Definim o variabilă simplă pentru a o folosi ușor în script
-        STAGING_IP = "${params.STAGING_SERVER_IP}"
+        STAGING_IP = "${params.PROD_SERVER_IP}"
         FULL_IMAGE = "${IMAGE_NAME}:latest"
         //FULL_IMAGE = "${IMAGE_NAME}:latest"
         //FULL_IMAGE = "${IMAGE_NAME}:47"
