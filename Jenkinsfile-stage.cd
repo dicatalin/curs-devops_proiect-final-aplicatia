@@ -32,11 +32,11 @@ pipeline {
             steps {
                 echo "Checking out code..."
                 checkout scm
-                sh "echo '1.0.${env.BUILD_NUMBER}-STAGING' > .version"
+                sh "echo '1.0.${env.BUILD_NUMBER}-STAGING' > .versionfile"
                 echo "Versiune setată: 1.0.${env.BUILD_NUMBER}-STAGING"
                 // Verificare:
-                sh "cat .version" 
-                sh "ls -la .version"
+                sh "cat .versionfile" 
+                sh "ls -la .versionfile"
                 sh "ls -la ./"
                 sh "touch ./testc"
             }
