@@ -37,6 +37,7 @@ pipeline {
                 // Verificare:
                 sh "cat .version" 
                 sh "ls -la .version"
+                sh "ls -la ./"
             }
         }
 
