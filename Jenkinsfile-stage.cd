@@ -34,6 +34,9 @@ pipeline {
                 checkout scm
                 sh "echo '${env.APP_VERSION}' > .version"
                 echo "Versiune setată: ${env.APP_VERSION}"
+                // Verificare:
+                sh "cat .version" 
+                sh "ls -la .version"
             }
         }
 
