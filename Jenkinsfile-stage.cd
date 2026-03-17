@@ -32,8 +32,8 @@ pipeline {
             steps {
                 echo "Checking out code..."
                 checkout scm
-                sh "echo '${env.APP_VERSION}' > .version"
-                echo "Versiune setată: ${env.APP_VERSION}"
+                sh "echo '1.0.${env.BUILD_NUMBER}-STAGING' > .version"
+                echo "Versiune setată: 1.0.${env.BUILD_NUMBER}-STAGING"
                 // Verificare:
                 sh "cat .version" 
                 sh "ls -la .version"
