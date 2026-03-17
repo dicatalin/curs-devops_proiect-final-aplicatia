@@ -144,7 +144,7 @@ CSRF_TRUSTED_ORIGINS = [
     'https://stage-host.home.local',
 ]
 
-VERSION_FILE = BASE_DIR / ".version"
+VERSION_FILE = BASE_DIR / ".versionfile"
 
 if VERSION_FILE.exists():
     with open(VERSION_FILE, "r") as f:
