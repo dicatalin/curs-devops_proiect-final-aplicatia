@@ -1,0 +1,73 @@
+- name: Deploy Blue/Green
+  hosts: all
+  vars:
+    # Definim cele două sloturi
+    slots:
+      blue:
+        port: 8000
+        container_name: web-blue
+      green:
+        port: 8001
+        container_name: web-green
+
+  tasks:
+    - name: Login to GitHub Packages
+      community.docker.docker_login:
+        registry_url: ghcr.io
+        username: "{{ gh_user }}"
+        password: "{{ gh_pat }}"
+        reauthorize: yes
+
+    - name: Pull the specific build image
+      community.docker.docker_image:
+        name: "{{ image_to_deploy }}"
+        source: pull
+        force_source: yes
+
+    - name: Identify which slot is currently running
+      shell: |
+        docker ps --format '{{.Names}}' | grep web-blue || echo "none"
+      register: active_slot_check
+      changed_when: false
+
+    - name: Set target slot
+      set_fact:
+        target_slot: "{{ 'green' if 'web-blue' in active_slot_check.stdout else 'blue' }}"
+        old_slot: "{{ 'blue' if 'web-blue' in active_slot_check.stdout else 'green' }}"
+
+    - name: "Deploy to Target Slot: {{ target_slot }}"
+      community.docker.docker_container:
+        name: "{{ slots[target_slot].container_name }}"
+        image: "{{ image_to_deploy }}"
+        state: started
+        restart_policy: always
+        published_ports:
+          - "{{ slots[target_slot].port }}:8000"
+        env:
+          DB_NAME: "{{ lookup('env', 'DB_NAME') }}"
+          DB_USER: "{{ lookup('env', 'DB_USER') }}"
+          DB_PASS: "{{ lookup('env', 'DB_PASS') }}"
+          DB_HOST: "{{ lookup('env', 'DB_HOST') }}"
+        command: >
+          sh -c "python3 manage.py migrate --noinput && 
+                 python3 manage.py runserver 0.0.0.0:8000"
+      register: deployment_info
+
+    - name: Wait for application to be ready (Healthcheck)
+      uri:
+        url: "http://localhost:{{ slots[target_slot].port }}/health/" # Ajustează endpoint-ul
+        status_code: 200
+      register: result
+      until: result.status == 200
+      retries: 10
+      delay: 5
+
+    - name: "Switch Traffic / Stop Old Slot: {{ old_slot }}"
+      community.docker.docker_container:
+        name: "{{ slots[old_slot].container_name }}"
+        state: absent
+      when: result.status == 200
+
+    - name: Clean up old images
+      community.docker.docker_prune:
+        images: yes
