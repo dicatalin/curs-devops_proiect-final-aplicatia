@@ -75,7 +75,7 @@ stages {
     agent any
     environment {
         // Definim o variabilă simplă pentru a o folosi ușor în script
-        STAGING_IP = "${params.PROD_SERVER_IP}"
+        PROD_IP = "${params.PROD_SERVER_IP}"
         FULL_IMAGE = "${IMAGE_NAME}:latest"
         //FULL_IMAGE = "${IMAGE_NAME}:latest"
         //FULL_IMAGE = "${IMAGE_NAME}:47"
@@ -86,9 +86,10 @@ stages {
                 // Folosim ghilimele triple SIMPLE (''' ''') pentru a evita "Bad substitution"
                 // În acest mod, Jenkins va injecta variabilele de mediu direct
                 sh '''
-                    ansible-playbook deploy-prod.yml \
+                    echo $PROD_IP
+                    ansible-playbook deploy-prod2.yml \
                     -u devop \
-                    -i $STAGING_IP, \
+                    -i $PROD_IP, \
                     -e "image_to_deploy=$FULL_IMAGE" \
                     -e "gh_user=$G_USER" \
                     -e "gh_pat=$G_PAT" \
