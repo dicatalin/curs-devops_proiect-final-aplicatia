@@ -87,7 +87,7 @@ stages {
                 // În acest mod, Jenkins va injecta variabilele de mediu direct
                 sh '''
                     echo $PROD_IP
-                    ansible-playbook deploy-prod.yml \
+                    ansible-playbook deploy-prod2.yml \
                     -u devop \
                     -i $PROD_IP, \
                     -e "image_to_deploy=$FULL_IMAGE" \
