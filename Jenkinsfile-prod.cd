@@ -68,7 +68,7 @@ pipeline {
                         waitUntil {
                             def response = sh(
                                 // script: "curl -s -o /dev/null -w '%{http_code}' http://${params.PROD_SERVER_IP}:${env.TARGET_PORT}/ || echo '000'",
-                                script: "curl -s -o /dev/null -L -w '%{http_code}' -H 'Host: prod-host.home.local' http://${params.PROD_SERVER_IP}:${env.TARGET_PORT}/ || echo '000'"
+                                script: "curl -s -o /dev/null -L -w '%{http_code}' -H 'Host: prod-host.home.local' http://${params.PROD_SERVER_IP}:${env.TARGET_PORT}/ || echo '000'",
                                 returnStdout: true
                             ).trim()
                             
