@@ -24,3 +24,4 @@ RUN pip install django mysqlclient
 
 RUN pip install --upgrade pip
 RUN pip install django
+RUN pip install requests
