@@ -25,7 +25,7 @@ pipeline {
             steps {
                 echo "Checking out code..."
                 checkout scm
-                sh "echo '1.0.${env.BUILD_NUMBER}-STAGING' > .versionfile"
+                sh "echo '1.0.${env.BUILD_NUMBER}' > .versionfile"
             }
         }
 
@@ -97,7 +97,7 @@ pipeline {
             post {
                 failure {
                     echo "Testele de integrare au eșuat!"
-                    // addPrComment necesita un plugin specific (GitHub Pull Request)
+                    // ridica alerta slack
                 }
             }
         }
