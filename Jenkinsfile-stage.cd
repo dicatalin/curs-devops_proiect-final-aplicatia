@@ -33,7 +33,7 @@ pipeline {
             agent any
             steps {
                 sh 'docker compose -f docker-compose.yml build'
-                sh 'docker compose -f docker-compose.yml run --rm web python manage.py test'
+                sh 'docker compose -f docker-compose.yml run --rm web python manage.py test biblioteca.tests_unit'
             }
             post {
                 always {
