@@ -2,7 +2,8 @@ pipeline {
     agent none
     environment {
         REGISTRY = "ghcr.io"
-        IMAGE_NAME = "ghcr.io/dicatalin/curs-devops_proiect-final-aplicatia".toLowerCase()
+        // Nota: .toLowerCase() nu functioneaza direct in environment block in unele versiuni de Jenkins
+        IMAGE_NAME = "ghcr.io/dicatalin/curs-devops_proiect-final-aplicatia"
         NGINX_CONF = "/etc/nginx/conf.d/prod-host.conf"
     }
 
@@ -63,11 +64,9 @@ pipeline {
             steps {
                 script {
                     echo "Așteptăm ca aplicația să răspundă pe portul ${env.TARGET_PORT}..."
-                    // Încearcă timp de 60 de secunde (12 încercări x 5 secunde)
                     timeout(time: 2, unit: 'MINUTES') {
                         waitUntil {
                             def response = sh(
-                                // script: "curl -s -o /dev/null -w '%{http_code}' http://${params.PROD_SERVER_IP}:${env.TARGET_PORT}/ || echo '000'",
                                 script: "curl -s -o /dev/null -L -w '%{http_code}' -H 'Host: prod-host.home.local' http://${params.PROD_SERVER_IP}:${env.TARGET_PORT}/ || echo '000'",
                                 returnStdout: true
                             ).trim()
@@ -94,14 +93,10 @@ pipeline {
             }
         }
 
-        // integration tests
-                stage('Smoke tests') {
-            agent any // Lipsea agentul aici
+        stage('Smoke tests') {
+            agent any
             steps {
-                // Dacă rulezi pe Staging, asigură-te că URL-ul din test punctează spre $STAGING_IP
                 sh '''
-                    # Presupunând că venv există deja pe worker-ul Jenkins
-                    # Sau poți rula testele folosind un container temporar
                     python3 -m venv venv
                     . venv/bin/activate
                     pip install django mysqlclient requests
@@ -111,11 +106,9 @@ pipeline {
             post {
                 failure {
                     echo "Testele de integrare au eșuat!"
-                    // ridica alerta slack
                 }
             }
         }
-    } // Închide stages
 
         stage('Switch Traffic (Automatic)') {
             agent any
@@ -146,6 +139,6 @@ pipeline {
                     }
                 }
             }
-        } //end
-    }
-}
+        }
+    } // Aici se inchide blocul stages corect
+} // Aici se inchide pipeline
