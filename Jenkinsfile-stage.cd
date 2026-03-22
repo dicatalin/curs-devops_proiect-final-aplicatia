@@ -101,5 +101,19 @@ pipeline {
         }
     }
 }
+        stage('Integration Tests') {
+            steps {
+                sh '''
+                . venv/bin/activate
+                python manage.py test biblioteca.test_staging_api --noinput
+                '''
+            }
+            post {
+                failure {
+                    addPrComment("❌ **Testele de integrare au esuat** au eșuat. Verifică log-urile aici: ${env.BUILD_URL}console")
+                }
+            }
+        }
+    }
     }
 }
