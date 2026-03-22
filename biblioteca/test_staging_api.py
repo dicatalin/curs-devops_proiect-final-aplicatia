@@ -2,7 +2,7 @@ import unittest
 import requests
 
 class StagingLiveTest(unittest.TestCase):
-    URL = "http://127.0.0.1:8000/"
+    URL = "https://stage-host.home.local/"
 
     def test_api_and_ui_on_live_server(self):
         # Trimitem request-ul către serverul care rulează deja
