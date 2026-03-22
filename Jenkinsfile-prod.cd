@@ -128,12 +128,73 @@ pipeline {
             }
         }
 
-        stage('Cleanup Old Container') {
+stage('Monitor & Rollback') {
             agent any
             steps {
                 script {
+                    try {
+                        echo "Începem monitorizarea de 10 minute pentru mediul ${env.TARGET_ENV} la https://prod-host.home.local/..."
+                        
+                        // Timeout de 10 minute pentru monitorizare post-deploy
+                        timeout(time: 10, unit: 'MINUTES') {
+                            // Folosim un loop care rulează până la expirarea timeout-ului
+                            while (true) {
+                                // -k ignoră certificatul self-signed
+                                // -L urmărește redirect-urile
+                                // -H forțează Header-ul de Host pentru Nginx VirtualHost
+                                def response = sh(
+                                    script: "curl -k -s -o /dev/null -L -w '%{http_code}' -H 'Host: prod-host.home.local' https://${params.PROD_SERVER_IP}/ || echo '000'",
+                                    returnStdout: true
+                                ).trim()
+                                
+                                if (response != "200" && response != "302") {
+                                    // Dacă statusul nu e OK, aruncăm eroare pentru a intra în blocul catch (Rollback)
+                                    error("CRITIC: Instanța de PROD a răspuns cu status ${response}. Inițiem Rollback!")
+                                }
+                                
+                                echo "Sănătate sistem OK (Status ${response}). Următoarea verificare în 30 sec..."
+                                sleep 30 
+                            }
+                        }
+                    } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
+                        // Această excepție apare când timeout-ul de 10 minute expiră natural (SUCCES)
+                        echo "Monitorizarea de 10 minute s-a încheiat cu succes. Nicio eroare detectată."
+                    } catch (Exception e) {
+                        // Orice altă eroare (ex: status != 200) declanșează Rollback-ul
+                        echo "ALERTA ROLLBACK: ${e.getMessage()}"
+                        
+                        def rollbackEnv = (env.TARGET_ENV == 'blue') ? 'green' : 'blue'
+                        def rollbackPort = (rollbackEnv == 'blue') ? '8081' : '8082'
+                        
+                        sshagent(['prod-server-credentials']) {
+                            sh """
+                                ssh -o StrictHostKeyChecking=no devop@${params.PROD_SERVER_IP} '
+                                    echo "REVENIRE LA MEDIUL STABIL: ${rollbackEnv} pe portul ${rollbackPort}..." && \
+                                    sudo sed -i "s/proxy_pass http:\\/\\/localhost:[0-9]*/proxy_pass http:\\/\\/localhost:${rollbackPort}/" ${env.NGINX_CONF} && \
+                                    sudo nginx -t && \
+                                    sudo systemctl reload nginx && \
+                                    echo ${rollbackEnv} > /home/devop/active_env
+                                '
+                            """
+                        }
+                        // Marcăm build-ul ca eșuat după ce am reparat Nginx
+                        currentBuild.result = 'FAILURE'
+                        error("Rollback executat. Versiunea nouă a fost retrasă din producție.")
+                    }
+                }
+            }
+        }
+
+        stage('Cleanup Old Container') {
+            agent any
+            // Se execută doar dacă monitorizarea a trecut (build-ul nu e eșuat)
+            when {
+                expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+            }
+            steps {
+                script {
                     def oldEnv = (env.TARGET_ENV == 'blue') ? 'green' : 'blue'
-                    echo "Oprim containerul vechi: web-${oldEnv}"
+                    echo "Succes confirmat. Oprim containerul de rezervă: web-${oldEnv}"
                     sshagent(['prod-server-credentials']) {
                         sh "ssh -o StrictHostKeyChecking=no devop@${params.PROD_SERVER_IP} 'docker stop web-${oldEnv} || true'"
                     }
