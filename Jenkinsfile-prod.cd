@@ -94,6 +94,29 @@ pipeline {
             }
         }
 
+        // integration tests
+                stage('Smoke tests') {
+            agent any // Lipsea agentul aici
+            steps {
+                // Dacă rulezi pe Staging, asigură-te că URL-ul din test punctează spre $STAGING_IP
+                sh '''
+                    # Presupunând că venv există deja pe worker-ul Jenkins
+                    # Sau poți rula testele folosind un container temporar
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install django mysqlclient requests
+                    python manage.py test biblioteca.test_prod_api --noinput
+                '''
+            }
+            post {
+                failure {
+                    echo "Testele de integrare au eșuat!"
+                    // ridica alerta slack
+                }
+            }
+        }
+    } // Închide stages
+
         stage('Switch Traffic (Automatic)') {
             agent any
             steps {
@@ -123,6 +146,6 @@ pipeline {
                     }
                 }
             }
-        }
+        } //end
     }
 }
