@@ -17,6 +17,6 @@ class StagingLiveTest(unittest.TestCase):
         # Verificăm dacă serverul e Online
         self.assertEqual(response.status_code, 200, "Serverul de Staging nu răspunde!")
         
-        # UI Test: Verificăm dacă în HTML-ul primit există cuvinte cheie
+        # Verificăm dacă în HTML-ul primit există cuvinte cheie
         self.assertIn("Titlu", response.text, "Câmpul 'Titlu' nu a fost găsit în interfață!")
         self.assertIn("Autor", response.text, "Câmpul 'Autor' nu a fost găsit în interfață!")
