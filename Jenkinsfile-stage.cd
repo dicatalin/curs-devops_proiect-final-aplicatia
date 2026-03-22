@@ -90,7 +90,7 @@ pipeline {
                     # Sau poți rula testele folosind un container temporar
                     python3 -m venv venv
                     . venv/bin/activate
-                    pip install requests
+                    pip install django mysqlclient requests
                     python manage.py test biblioteca.test_staging_api --noinput
                 '''
             }
