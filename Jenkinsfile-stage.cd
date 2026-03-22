@@ -1,19 +1,17 @@
 pipeline {
-    // Define a global agent 'none' to enforce per-stage agent definitions
     agent none
+    
     environment {
-        // GitHub CLI folosește automat această variabilă
         DB_NAME = credentials('STAGE_DB_NAME_ID')
         DB_USER = credentials('STAGE_DB_USER_ID')
         DB_PASS = credentials('STAGE_DB_PASSWORD_ID')
         DB_HOST = credentials('STAGE_DB_HOST_ID')
         REGISTRY = "ghcr.io"
-        IMAGE_NAME = "${REGISTRY}/dicatalin/curs-devops_proiect-final-aplicatia".toLowerCase()
-        //APP_VERSION = "1.0.${env.BUILD_NUMBER}-STAGING"
+        // Corecție: .toLowerCase() trebuie apelat în interiorul unui bloc script sau definit corect
+        IMAGE_NAME = "ghcr.io/dicatalin/curs-devops_proiect-final-aplicatia" 
     }
 
     options {
-        // Set a global timeout for the entire pipeline to prevent it from running indefinitely.
         timeout(time: 30, unit: 'MINUTES')
     }
 
@@ -23,46 +21,31 @@ pipeline {
 
     stages {
         stage('Checkout') {
-            // This stage can run on any available agent
             agent any
-            options {
-                timeout(time: 5, unit: 'MINUTES')
-            }            
             steps {
                 echo "Checking out code..."
                 checkout scm
                 sh "echo '1.0.${env.BUILD_NUMBER}-STAGING' > .versionfile"
-                echo "Versiune setată: 1.0.${env.BUILD_NUMBER}-STAGING"
             }
         }
 
         stage('Test Image') {
             agent any
-            options {
-                timeout(time: 10, unit: 'MINUTES')
-            }            
             steps {
-                echo 'Testing the Docker image...'
                 sh 'docker compose -f docker-compose.yml build'
                 sh 'docker compose -f docker-compose.yml run --rm web python manage.py test'
             }
             post {
-            always {
-                sh 'docker compose -f docker-compose.yml down'
+                always {
+                    sh 'docker compose -f docker-compose.yml down'
+                }
+            }
         }
-    }
-        }
-
-// comentata doar pentru teste
 
         stage('Push Image') {
             agent any
-            options {
-                timeout(time: 10, unit: 'MINUTES')
-            }            
             steps {
                 script {
-                    echo "Pushing the Docker image to ${env.IMAGE_NAME}..."
                     docker.withRegistry("https://${REGISTRY}", 'github-packages-pat') {
                         def customImage = docker.build("${IMAGE_NAME}:${env.BUILD_NUMBER}", '.')
                         customImage.push()
@@ -71,48 +54,52 @@ pipeline {
                 }
             }
         }
+
         stage('Deploy with Ansible') {
-    agent any
-    environment {
-        // Definim o variabilă simplă pentru a o folosi ușor în script
-        STAGING_IP = "${params.STAGING_SERVER_IP}"
-        FULL_IMAGE = "${IMAGE_NAME}:${env.BUILD_NUMBER}"
-        //FULL_IMAGE = "${IMAGE_NAME}:latest"
-        //FULL_IMAGE = "${IMAGE_NAME}:47"
-    }
-    steps {
-        sshagent(['staging-server-credentials']) {
-            withCredentials([usernamePassword(credentialsId: 'github-packages-pat', usernameVariable: 'G_USER', passwordVariable: 'G_PAT')]) {
-                // Folosim ghilimele triple SIMPLE (''' ''') pentru a evita "Bad substitution"
-                // În acest mod, Jenkins va injecta variabilele de mediu direct
-                sh '''
-                    ansible-playbook deploy.yml \
-                    -u devop \
-                    -i $STAGING_IP, \
-                    -e "image_to_deploy=$FULL_IMAGE" \
-                    -e "gh_user=$G_USER" \
-                    -e "gh_pat=$G_PAT" \
-                    -e "DB_NAME=$DB_NAME" \
-                    -e "DB_USER=$DB_USER" \
-                    -e "DB_PASS=$DB_PASSWORD" \
-                    -e "DB_HOST=$DB_HOST"
-                '''
+            agent any
+            environment {
+                STAGING_IP = "${params.STAGING_SERVER_IP}"
+                FULL_IMAGE = "${IMAGE_NAME}:${env.BUILD_NUMBER}"
+            }
+            steps {
+                sshagent(['staging-server-credentials']) {
+                    withCredentials([usernamePassword(credentialsId: 'github-packages-pat', usernameVariable: 'G_USER', passwordVariable: 'G_PAT')]) {
+                        sh '''
+                            ansible-playbook deploy.yml \
+                            -u devop \
+                            -i $STAGING_IP, \
+                            -e "image_to_deploy=$FULL_IMAGE" \
+                            -e "gh_user=$G_USER" \
+                            -e "gh_pat=$G_PAT" \
+                            -e "DB_NAME=$DB_NAME" \
+                            -e "DB_USER=$DB_USER" \
+                            -e "DB_PASS=$DB_PASS" \
+                            -e "DB_HOST=$DB_HOST"
+                        '''
+                    }
+                }
             }
         }
-    }
-}
+
         stage('Integration Tests') {
+            agent any // Lipsea agentul aici
             steps {
+                // Dacă rulezi pe Staging, asigură-te că URL-ul din test punctează spre $STAGING_IP
                 sh '''
-                . venv/bin/activate
-                python manage.py test biblioteca.test_staging_api --noinput
+                    # Presupunând că venv există deja pe worker-ul Jenkins
+                    # Sau poți rula testele folosind un container temporar
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install requests
+                    python manage.py test biblioteca.test_staging_api --noinput
                 '''
             }
             post {
                 failure {
-                    addPrComment("❌ **Testele de integrare au esuat** au eșuat. Verifică log-urile aici: ${env.BUILD_URL}console")
+                    echo "Testele de integrare au eșuat!"
+                    // addPrComment necesita un plugin specific (GitHub Pull Request)
                 }
             }
         }
-    }
-    }
+    } // Închide stages
+} // Închide pipeline
