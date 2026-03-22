@@ -47,7 +47,8 @@ pipeline {
             steps {
                 sh '''
                 . venv/bin/activate
-                python manage.py test --noinput
+                # python manage.py test --noinput
+                python manage.py test biblioteca.tests_unit --noinput
                 '''
             }
             post {

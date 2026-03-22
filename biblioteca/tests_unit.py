@@ -12,8 +12,8 @@ class BookModelTest(TestCase):
         Acesta se rulează înainte de fiecare metodă de test.
         """
         self.book = Book.objects.create(
-            title="Micul Prinț",
-            author="Antoine de Saint-Exupéry",
+            title="Micul Print",
+            author="Antoine de Saint-Exupery",
             isbn="1234567890123",
             publish_year=1943
         )
@@ -21,11 +21,11 @@ class BookModelTest(TestCase):
     def test_book_creation(self):
         """Verificăm dacă obiectul a fost creat corect în baza de date."""
         self.assertTrue(isinstance(self.book, Book))
-        self.assertEqual(self.book.title, "Micul Prinț")
+        self.assertEqual(self.book.title, "Micul Print")
 
     def test_str_representation(self):
         """Verificăm dacă metoda __str__ returnează titlul, așa cum am definit-o."""
-        self.assertEqual(str(self.book), "Micul Prinț")
+        self.assertEqual(str(self.book), "Micul Print")
 
     def test_isbn_uniqueness(self):
         """
@@ -34,7 +34,7 @@ class BookModelTest(TestCase):
         """
         with self.assertRaises(IntegrityError):
             Book.objects.create(
-                title="Altă Carte",
+                title="Alta Carte",
                 author="Alt Autor",
                 isbn="1234567890123",  # Același ISBN ca în setUp
                 publish_year=2024
