@@ -96,16 +96,20 @@ pipeline {
         stage('Smoke tests') {
             agent any
             steps {
-                sh '''
-                    python3 -m venv venv
-                    . venv/bin/activate
-                    pip install django mysqlclient requests
-                    python manage.py test biblioteca.test_prod_api --noinput
-                '''
+                // Adăugăm variabila de mediu aici pentru ca Python să o vadă
+                withEnv(["TEST_PORT=${env.TARGET_PORT}", "TEST_HOST=${params.PROD_SERVER_IP}"]) {
+                    sh '''
+                        python3 -m venv venv
+                        . venv/bin/activate
+                        pip install django mysqlclient requests
+                        # Acum rulăm testul; el va citi TEST_PORT din mediu
+                        python manage.py test biblioteca.test_prod_api --noinput
+                    '''
+                }
             }
             post {
                 failure {
-                    echo "Testele de integrare au eșuat!"
+                    echo "Testele de integrare au eșuat pe portul ${env.TARGET_PORT}!"
                 }
             }
         }
