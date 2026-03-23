@@ -25,11 +25,16 @@ pipeline {
             steps {
                 echo "Checking out code..."
                 checkout scm
-                sh "echo '1.0.${env.BUILD_NUMBER}' > .versionfile"
+                //sh "echo '1.0.${env.BUILD_NUMBER}' > .versionfile"
+                script {
+                    def version = "1.0.${env.BUILD_NUMBER}"
+                    writeFile file: '.versionfile', text: version
+                    echo "Version saved: ${version}"
+                }
             }
         }
 
-        stage('Test Image') {
+        stage('Build and Test Image') {
             agent any
             steps {
                 sh 'docker compose -f docker-compose.yml build --no-cache'
