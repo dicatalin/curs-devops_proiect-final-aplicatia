@@ -142,6 +142,7 @@ DATABASES = {
 
 CSRF_TRUSTED_ORIGINS = [
     'https://stage-host.home.local',
+    'https://prod-host.home.local',
 ]
 
 VERSION_FILE = BASE_DIR / ".versionfile"
