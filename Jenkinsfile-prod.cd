@@ -11,6 +11,37 @@ pipeline {
         string(name: 'PROD_SERVER_IP', defaultValue: '192.168.122.76', description: 'IP-ul serverului de producție')
     }
 
+    //backup DB
+    stage('Database Backup') {
+            agent any
+            steps {
+                sshagent(['prod-server-credentials']) {
+                    withCredentials([
+                        string(credentialsId: 'PROD_DB_NAME_ID', variable: 'DB_NAME'),
+                        string(credentialsId: 'PROD_DB_USER_ID', variable: 'DB_USER'),
+                        string(credentialsId: 'PROD_DB_PASSWORD_ID', variable: 'DB_PASS'),
+                        string(credentialsId: 'PROD_DB_HOST_ID', variable: 'DB_HOST')
+                    ]) {
+                        script {
+                            def timestamp = new Date().format("yyyyMMdd_HHmmss")
+                            def backupFile = "/home/devop/backups/backup_${DB_NAME}_${timestamp}.sql"
+                            
+                            echo "Se inițializează backup-ul pentru baza de date ${DB_NAME}..."
+                            
+                            sh """
+                                ssh -o StrictHostKeyChecking=no devop@${params.PROD_SERVER_IP} '
+                                    mkdir -p /home/devop/backups && \
+                                    mysqldump -h ${DB_HOST} -u ${DB_USER} -p"${DB_PASS}" ${DB_NAME} > ${backupFile} && \
+                                    gzip ${backupFile}
+                                '
+                            """
+                            echo "Backup finalizat cu succes: ${backupFile}.gz"
+                        }
+                    }
+                }
+            }
+        }
+
     stages {
         stage('Identify Target') {
             agent any
