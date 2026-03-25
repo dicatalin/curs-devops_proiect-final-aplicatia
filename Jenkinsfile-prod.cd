@@ -44,16 +44,15 @@ pipeline {
                     ]) {
                         script {
                             def timestamp = new Date().format("yyyyMMdd_HHmmss")
-                            def backupFile = "/home/devop/backups/backup_${DB_NAME}_${timestamp}.sql"
+                            def backupFile = "/opt/proddb_backup/backup_${DB_NAME}_${timestamp}.sql"
                             
                             echo "Se inițializează backup-ul pentru baza de date ${DB_NAME}..."
                             
                             sh """
-                                ssh -o StrictHostKeyChecking=no devop@${params.PROD_SERVER_IP} '
-                                    mkdir -p /home/devop/backups && \
+                                
                                     mysqldump -h ${DB_HOST} -u ${DB_USER} -p"${DB_PASS}" ${DB_NAME} > ${backupFile} && \
                                     gzip ${backupFile}
-                                '
+                                
                             """
                             echo "Backup finalizat cu succes: ${backupFile}.gz"
                         }
