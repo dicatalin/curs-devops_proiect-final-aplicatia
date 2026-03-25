@@ -11,7 +11,27 @@ pipeline {
         string(name: 'PROD_SERVER_IP', defaultValue: '192.168.122.76', description: 'IP-ul serverului de producție')
     }
 
-    //backup DB
+    
+
+    stages {
+        stage('Identify Target') {
+            agent any
+            steps {
+                script {
+                    def activeEnv = sh(
+                        script: "ssh -o StrictHostKeyChecking=no devop@${params.PROD_SERVER_IP} 'cat /home/devop/active_env 2>/dev/null || echo blue'", 
+                        returnStdout: true
+                    ).trim()
+                    
+                    env.TARGET_ENV = (activeEnv == 'blue') ? 'green' : 'blue'
+                    env.TARGET_PORT = (env.TARGET_ENV == 'blue') ? '8081' : '8082'
+                    
+                    echo "Detectat mediu activ: ${activeEnv}. Pregătim deploy pe: ${env.TARGET_ENV} (Port ${env.TARGET_PORT})"
+                }
+            }
+        }
+
+        //backup DB
     stage('Database Backup') {
             agent any
             steps {
@@ -38,24 +58,6 @@ pipeline {
                             echo "Backup finalizat cu succes: ${backupFile}.gz"
                         }
                     }
-                }
-            }
-        }
-
-    stages {
-        stage('Identify Target') {
-            agent any
-            steps {
-                script {
-                    def activeEnv = sh(
-                        script: "ssh -o StrictHostKeyChecking=no devop@${params.PROD_SERVER_IP} 'cat /home/devop/active_env 2>/dev/null || echo blue'", 
-                        returnStdout: true
-                    ).trim()
-                    
-                    env.TARGET_ENV = (activeEnv == 'blue') ? 'green' : 'blue'
-                    env.TARGET_PORT = (env.TARGET_ENV == 'blue') ? '8081' : '8082'
-                    
-                    echo "Detectat mediu activ: ${activeEnv}. Pregătim deploy pe: ${env.TARGET_ENV} (Port ${env.TARGET_PORT})"
                 }
             }
         }
