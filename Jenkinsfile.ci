@@ -77,7 +77,7 @@ pipeline {
 }
 
 /**
- * Helper pentru comentarii pe PR
+ * Helper pentru comentarii pe PR, folosind GH API.
  */
 def addPrComment(String message) {
     // Folosim env.GH_TOKEN pentru a accesa variabila din environment
