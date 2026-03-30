@@ -39,6 +39,7 @@ pipeline {
             post {
                 failure {
                     addPrComment("❌ Testul de **linting** a eșuat. Verifică log-urile aici: ${env.BUILD_URL}console")
+                    slackSend(color: "danger", message: "Testul de **linting** a eșuat. Verifică log-urile aici: ${env.BUILD_URL}console")
                 }
             }
         }
@@ -54,6 +55,7 @@ pipeline {
             post {
                 failure {
                     addPrComment("❌ **Unit-testele** au eșuat. Verifică log-urile aici: ${env.BUILD_URL}console")
+                    slackSend(color: "danger", message: "**Unit-testele** au eșuat. Verifică log-urile aici: ${env.BUILD_URL}console")
                 }
             }
         }
@@ -62,6 +64,7 @@ pipeline {
     post {
         success {
             echo '✅ Toate etapele au trecut. Încercăm merge automat...'
+            slackSend(color: "good", message: "Toate testele au trecut. Încercăm merge automat...")
             sh '''
             export GH_TOKEN=$GH_TOKEN
             
