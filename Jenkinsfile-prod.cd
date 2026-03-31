@@ -27,6 +27,7 @@ pipeline {
                     env.TARGET_PORT = (env.TARGET_ENV == 'blue') ? '8081' : '8082'
                     
                     echo "Detectat mediu activ: ${activeEnv}. Pregătim deploy pe: ${env.TARGET_ENV} (Port ${env.TARGET_PORT})"
+                    slackSend(color: "good", message: "Detectat mediu activ: ${activeEnv}. Pregătim deploy pe: ${env.TARGET_ENV} (Port ${env.TARGET_PORT})")
                 }
             }
         }
@@ -55,6 +56,8 @@ pipeline {
                                 
                             """
                             echo "Backup finalizat cu succes: ${backupFile}.gz"
+                            slackSend(color: "good", message: "Backup finalizat cu succes: ${backupFile}.gz")
+                        
                         }
                     }
                 }
@@ -118,6 +121,7 @@ pipeline {
             post {
                 failure {
                     echo "Health check eșuat. Curățăm mediul ${env.TARGET_ENV}..."
+                    slackSend(color: "danger", message: "Health check eșuat. Curățăm mediul ${env.TARGET_ENV}...")
                     sshagent(['prod-server-credentials']) {
                         sh "ssh -o StrictHostKeyChecking=no devop@${params.PROD_SERVER_IP} 'docker stop web-${env.TARGET_ENV} || true'"
                     }
@@ -142,6 +146,11 @@ pipeline {
             post {
                 failure {
                     echo "Testele de integrare au eșuat pe portul ${env.TARGET_PORT}!"
+                    slackSend(color: "danger", message: "Smoke tests au eșuat pe portul ${env.TARGET_PORT}!")
+                }
+                success {
+                    echo "Testele de integrare au trecut cu succes pe portul ${env.TARGET_PORT}!"
+                    slackSend(color: "good", message: "Smoke tests au trecut cu succes pe portul ${env.TARGET_PORT}!")
                 }
             }
         }
@@ -160,6 +169,7 @@ pipeline {
                         '
                     """
                     echo "Trafic redirecționat cu succes către ${env.TARGET_ENV}."
+                    slackSend(color: "good", message: "Trafic redirecționat cu succes către ${env.TARGET_ENV}.")
                 }
             }
         }
@@ -170,7 +180,7 @@ stage('Monitor & Rollback') {
                 script {
                     try {
                         echo "Începem monitorizarea de 10 minute pentru mediul ${env.TARGET_ENV} la https://prod-host.home.local/..."
-                        
+                        slackSend(color: "good", message: "Începem monitorizarea de 10 minute pentru mediul ${env.TARGET_ENV} la https://prod-host.home.local/...")
                         // Timeout de 10 minute pentru monitorizare post-deploy
                         timeout(time: 10, unit: 'MINUTES') {
                             // Folosim un loop care rulează până la expirarea timeout-ului
@@ -195,6 +205,7 @@ stage('Monitor & Rollback') {
                     } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
                         // Această excepție apare când timeout-ul de 10 minute expiră natural (SUCCES)
                         echo "Monitorizarea de 10 minute s-a încheiat cu succes. Nicio eroare detectată."
+                        slackSend(color: "good", message: "Monitorizarea de 10 minute s-a încheiat cu succes. Nicio eroare detectată.")
                     } catch (Exception e) {
                         // Orice altă eroare (ex: status != 200) declanșează Rollback-ul
                         echo "ALERTA ROLLBACK: ${e.getMessage()}"
@@ -216,6 +227,7 @@ stage('Monitor & Rollback') {
                         // Marcăm build-ul ca eșuat după ce am reparat Nginx
                         currentBuild.result = 'FAILURE'
                         error("Rollback executat. Versiunea nouă a fost retrasă din producție.")
+                        slackSend(color: "danger", message: "Rollback executat. Versiunea nouă a fost retrasă din producție.")
                     }
                 }
             }
