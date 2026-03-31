@@ -48,6 +48,7 @@ pipeline {
                             def backupFile = "/opt/proddb_backup/backup_${DB_NAME}_${timestamp}.sql"
                             
                             echo "Se inițializează backup-ul pentru baza de date ${DB_NAME}..."
+                            slackSend(color: "good", message: "Se inițializează backup-ul pentru baza de date ${DB_NAME}...")
                             
                             sh """
                                 
