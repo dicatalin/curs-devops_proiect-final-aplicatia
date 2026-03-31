@@ -32,7 +32,7 @@ pipeline {
             }
         }
 
-        //backup DB ...
+        //backup DB ... ...
     stage('Database Backup') {
             agent any
             steps {
