@@ -103,6 +103,12 @@ pipeline {
                 failure {
                     echo "Testele de integrare au eșuat!"
                     // ridica alerta slack
+                    slackSend(color: "danger", message: "Stage CD - Testele de integrare au eșuat!")
+                }
+                success {
+                    echo "Testele de integrare au trecut cu succes!"
+                    // ridica alerta slack
+                    slackSend(color: "good", message: "Stage CD - Testele de integrare au trecut cu succes!")
                 }
             }
         }
