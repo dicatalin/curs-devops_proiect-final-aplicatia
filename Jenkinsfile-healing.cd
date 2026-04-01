@@ -1,0 +1,68 @@
+pipeline {
+    agent any // Avem nevoie de un agent pentru a rula verificările
+    
+    triggers {
+        // Rulează pipeline-ul în fiecare minut, permanent
+        cron('* * * * *')
+    }
+
+    environment {
+        REGISTRY = "ghcr.io"
+        IMAGE_NAME = "ghcr.io/dicatalin/curs-devops_proiect-final-aplicatia"
+        PROD_IP = "192.168.122.76"
+    }
+
+    stages {
+        stage('Health Check & Self-Healing') {
+            steps {
+                script {
+                    sshagent(['prod-server-credentials']) {
+                        // 1. Verificăm statusul HTTP
+                        def response = sh(
+                            script: "curl -k -s -o /dev/null -L -w '%{http_code}' -H 'Host: prod-host.home.local' https://${env.PROD_IP}/ || echo '000'",
+                            returnStdout: true
+                        ).trim()
+
+                        echo "Status curent: ${response}"
+
+                        if (response == "200" || response == "302") {
+                            echo "Sistemul este sănătos."
+                        } else {
+                            echo "AVARIE DETECTATĂ (Status ${response}). Se inițiază procedurile de recuperare..."
+                            
+                            // 2. Logica de Self-Healing via SSH
+                            sh """
+                                ssh -o StrictHostKeyChecking=no devop@${env.PROD_IP} '
+                                    echo "--- Verificare Containere ---"
+                                    # Verifică dacă containerele (blue/green) rulează, dacă nu, le pornește
+                                    if [ \$(docker ps -q -f name=web-blue | wc -l) -eq 0 ]; then
+                                        echo "Restartare container BLUE..."
+                                        docker start web-blue || echo "Eroare la start web-blue"
+                                    fi
+                                    
+                                    if [ \$(docker ps -q -f name=web-green | wc -l) -eq 0 ]; then
+                                        echo "Restartare container GREEN..."
+                                        docker start web-green || echo "Eroare la start web-green"
+                                    fi
+
+                                    echo "--- Verificare Nginx ---"
+                                    # Verifică dacă procesul nginx există, dacă nu, îl pornește
+                                    if ! pgrep -x "nginx" > /dev/null; then
+                                        echo "Nginx este oprit. Restartare..."
+                                        sudo systemctl restart nginx
+                                    else
+                                        # Dacă nginx rulează dar a dat eroare (ex: 502), dăm un reload
+                                        echo "Nginx rulează dar a raportat eroare. Aplicăm reload..."
+                                        sudo systemctl reload nginx
+                                    fi
+                                '
+                            """
+                            
+                            slackSend(color: "warning", message: "Self-healing executat pe ${env.PROD_IP}. Status-ul a fost ${response}.")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
