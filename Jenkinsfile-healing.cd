@@ -1,64 +1,87 @@
 pipeline {
-    agent any // Avem nevoie de un agent pentru a rula verificările
-    
+    agent any
+
     triggers {
-        // Rulează pipeline-ul în fiecare minut, permanent
+        // Rulează automat în fiecare minut
         cron('* * * * *')
     }
 
+    options {
+        // Nu vrem să avem 10 build-uri de monitorizare în așteptare dacă unul merge greu
+        disableConcurrentBuilds()
+    }
+
     environment {
-        REGISTRY = "ghcr.io"
-        IMAGE_NAME = "ghcr.io/dicatalin/curs-devops_proiect-final-aplicatia"
         PROD_IP = "192.168.122.76"
+        DEPLOY_JOB_NAME = "biblioteca-cd-prod-pipeline"
     }
 
     stages {
+        stage('Safety Check') {
+            steps {
+                script {
+                    // Verificăm dacă pipeline-ul de CD rulează
+                    def deploymentJob = Jenkins.get().getItemByFullName(env.DEPLOY_JOB_NAME)
+                    
+                    if (deploymentJob != null && deploymentJob.isBuilding()) {
+                        currentBuild.result = 'ABORTED'
+                        echo "--- [STOP] Pipeline-ul ${env.DEPLOY_JOB_NAME} este activ. ---"
+                        echo "Inhibăm monitorizarea pentru a preveni conflictele cu procesul de deploy."
+                        error("Inhibare activă: Deploy în curs.")
+                    } else {
+                        echo "--- [START] Niciun deployment detectat. Pornim verificarea de sănătate. ---"
+                    }
+                }
+            }
+        }
+
         stage('Health Check & Self-Healing') {
             steps {
                 script {
                     sshagent(['prod-server-credentials']) {
-                        // 1. Verificăm statusul HTTP
+                        // 1. Detectăm mediul care AR TREBUI să fie activ
+                        def activeEnv = sh(
+                            script: "ssh -o StrictHostKeyChecking=no devop@${env.PROD_IP} 'cat /home/devop/active_env 2>/dev/null || echo blue'", 
+                            returnStdout: true
+                        ).trim()
+                        
+                        def containerName = "web-${activeEnv}"
+                        echo "Mediul țintă detectat: ${activeEnv} (Container: ${containerName})"
+
+                        // 2. Verificăm dacă serviciul este accesibil prin Nginx
+                        // Folosim -m 10 pentru un timeout de 10 secunde la curl
                         def response = sh(
-                            script: "curl -k -s -o /dev/null -L -w '%{http_code}' -H 'Host: prod-host.home.local' https://${env.PROD_IP}/ || echo '000'",
+                            script: "curl -k -s -o /dev/null -L -m 10 -w '%{http_code}' -H 'Host: prod-host.home.local' https://${env.PROD_IP}/ || echo '000'",
                             returnStdout: true
                         ).trim()
 
-                        echo "Status curent: ${response}"
-
                         if (response == "200" || response == "302") {
-                            echo "Sistemul este sănătos."
+                            echo "Sănătate OK: Răspuns ${response} de la Nginx."
                         } else {
-                            echo "AVARIE DETECTATĂ (Status ${response}). Se inițiază procedurile de recuperare..."
-                            
-                            // 2. Logica de Self-Healing via SSH
+                            echo "AVARIE: Status ${response}. Se încearcă repararea..."
+
                             sh """
                                 ssh -o StrictHostKeyChecking=no devop@${env.PROD_IP} '
-                                    echo "--- Verificare Containere ---"
-                                    # Verifică dacă containerele (blue/green) rulează, dacă nu, le pornește
-                                    if [ \$(docker ps -q -f name=web-blue | wc -l) -eq 0 ]; then
-                                        echo "Restartare container BLUE..."
-                                        docker start web-blue || echo "Eroare la start web-blue"
-                                    fi
-                                    
-                                    if [ \$(docker ps -q -f name=web-green | wc -l) -eq 0 ]; then
-                                        echo "Restartare container GREEN..."
-                                        docker start web-green || echo "Eroare la start web-green"
+                                    echo "Pas 1: Verificare container ${containerName}..."
+                                    # Dacă containerul nu rulează (nu apare în docker ps), îi dăm restart
+                                    if [ \$(docker ps -q -f name=${containerName} | wc -l) -eq 0 ]; then
+                                        echo "Containerul ${containerName} este picat. Restartare..."
+                                        docker restart ${containerName}
+                                        sleep 5
                                     fi
 
-                                    echo "--- Verificare Nginx ---"
-                                    # Verifică dacă procesul nginx există, dacă nu, îl pornește
+                                    echo "Pas 2: Verificare Nginx..."
                                     if ! pgrep -x "nginx" > /dev/null; then
-                                        echo "Nginx este oprit. Restartare..."
+                                        echo "Nginx nu rulează. Pornire systemctl..."
                                         sudo systemctl restart nginx
                                     else
-                                        # Dacă nginx rulează dar a dat eroare (ex: 502), dăm un reload
-                                        echo "Nginx rulează dar a raportat eroare. Aplicăm reload..."
-                                        sudo systemctl reload nginx
+                                        echo "Nginx rulează dar dă erori. Reloading..."
+                                        sudo nginx -t && sudo systemctl reload nginx
                                     fi
                                 '
                             """
                             
-                            slackSend(color: "warning", message: "Self-healing executat pe ${env.PROD_IP}. Status-ul a fost ${response}.")
+                            slackSend(color: "warning", message: "Self-Healing: Serviciul de producție a fost restaurat (Eroare detectată: ${response}).")
                         }
                     }
                 }
